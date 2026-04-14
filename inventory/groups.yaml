@@ -1,0 +1,43 @@
+---
+# Nornir SimpleInventory — group definitions
+
+spine:
+  platform: arista_eos
+  port: 22
+  connection_options:
+    netmiko:
+      extras:
+        device_type: arista_eos
+  data:
+    role: spine
+    asn: 65000
+
+leaf:
+  platform: arista_eos
+  port: 22
+  connection_options:
+    netmiko:
+      extras:
+        device_type: arista_eos
+  data:
+    role: leaf
+
+border:
+  platform: arista_eos
+  port: 22
+  connection_options:
+    netmiko:
+      extras:
+        device_type: arista_eos
+  data:
+    role: border
+
+host:
+  platform: linux
+  port: 22
+  connection_options:
+    netmiko:
+      extras:
+        device_type: linux
+  data:
+    role: host

@@ -1,0 +1,30 @@
+---
+# Sample flow rules for testing — used by fixtures and template tests.
+
+flows:
+  - id: "allow-vlan10-east-west"
+    table_id: 0
+    priority: 200
+    match:
+      vlan_id: 10
+      eth_type: 2048
+    action: forward
+    output_port: "NORMAL"
+
+  - id: "deny-cross-tenant"
+    table_id: 0
+    priority: 100
+    match:
+      ipv4_src: "10.0.10.0/24"
+      ipv4_dst: "10.0.20.0/24"
+    action: drop
+
+  - id: "redirect-to-fw"
+    table_id: 0
+    priority: 150
+    match:
+      ipv4_dst: "198.51.100.0/24"
+    action: forward
+    output_port: "3"
+    metadata:
+      description: "Redirect external traffic through firewall"

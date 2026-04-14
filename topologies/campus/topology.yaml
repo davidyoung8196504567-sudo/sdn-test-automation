@@ -1,0 +1,77 @@
+---
+name: campus
+description: >
+  Three-tier campus network: core → distribution → access.
+  Models a typical enterprise campus with segmented VLANs.
+
+controller:
+  type: onos
+  host: "${SDN_CONTROLLER_HOST}"
+  port: 8181
+
+nodes:
+  - name: core-1
+    role: spine
+    mgmt_ip: "10.255.0.1"
+    device_type: cisco_ios
+    interfaces: [GigabitEthernet0/1, GigabitEthernet0/2]
+
+  - name: dist-1
+    role: leaf
+    mgmt_ip: "10.255.1.1"
+    device_type: cisco_ios
+    interfaces: [GigabitEthernet0/1, GigabitEthernet0/2, GigabitEthernet0/3]
+
+  - name: dist-2
+    role: leaf
+    mgmt_ip: "10.255.1.2"
+    device_type: cisco_ios
+    interfaces: [GigabitEthernet0/1, GigabitEthernet0/2, GigabitEthernet0/3]
+
+  - name: access-1
+    role: host
+    mgmt_ip: "10.0.100.1"
+    device_type: cisco_ios
+    interfaces: [GigabitEthernet0/1]
+
+  - name: access-2
+    role: host
+    mgmt_ip: "10.0.200.1"
+    device_type: cisco_ios
+    interfaces: [GigabitEthernet0/1]
+
+links:
+  - src_node: core-1
+    src_interface: GigabitEthernet0/1
+    dst_node: dist-1
+    dst_interface: GigabitEthernet0/1
+    bandwidth: "10G"
+  - src_node: core-1
+    src_interface: GigabitEthernet0/2
+    dst_node: dist-2
+    dst_interface: GigabitEthernet0/1
+    bandwidth: "10G"
+  - src_node: dist-1
+    src_interface: GigabitEthernet0/2
+    dst_node: access-1
+    dst_interface: GigabitEthernet0/1
+    bandwidth: "1G"
+  - src_node: dist-2
+    src_interface: GigabitEthernet0/2
+    dst_node: access-2
+    dst_interface: GigabitEthernet0/1
+    bandwidth: "1G"
+
+segments:
+  - name: data-vlan
+    vlan_id: 100
+    nodes: [access-1, dist-1]
+    description: "Data VLAN — wired endpoints"
+  - name: voice-vlan
+    vlan_id: 200
+    nodes: [access-2, dist-2]
+    description: "Voice VLAN — IP phones"
+
+metadata:
+  lab: physical
+  site: campus-main

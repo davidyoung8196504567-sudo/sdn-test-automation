@@ -1,0 +1,26 @@
+{
+  "acl-entry": {
+    "rule-name": "{{ rule_name }}",
+    "sequence-id": {{ sequence_id | default(10) }},
+    "matches": {
+      {% if src_ip is defined %}
+      "source-ipv4-network": "{{ src_ip }}",
+      {% endif %}
+      {% if dst_ip is defined %}
+      "destination-ipv4-network": "{{ dst_ip }}",
+      {% endif %}
+      {% if protocol is defined %}
+      "protocol": {{ protocol }},
+      {% endif %}
+      {% if dst_port is defined %}
+      "destination-port-range": {
+        "lower-port": {{ dst_port }},
+        "upper-port": {{ dst_port }}
+      }
+      {% endif %}
+    },
+    "actions": {
+      "forwarding": "{{ action | default('accept') }}"
+    }
+  }
+}

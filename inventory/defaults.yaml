@@ -1,0 +1,6 @@
+---
+# Nornir SimpleInventory — default connection parameters
+# Override via environment: SDN_DEVICE_USER, SDN_DEVICE_PASS
+
+username: "admin"
+password: "admin"

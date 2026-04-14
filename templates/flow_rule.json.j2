@@ -1,0 +1,40 @@
+{
+  "flow": {
+    "id": "{{ flow_id }}",
+    "table_id": {{ table_id | default(0) }},
+    "priority": {{ priority | default(100) }},
+    "match": {
+      {% if in_port is defined %}
+      "in-port": "{{ in_port }}",
+      {% endif %}
+      "ethernet-match": {
+        "ethernet-type": {
+          "type": {{ eth_type | default(2048) }}
+        }
+      }
+      {% if ipv4_dst is defined %}
+      ,"ipv4-destination": "{{ ipv4_dst }}"
+      {% endif %}
+      {% if ipv4_src is defined %}
+      ,"ipv4-source": "{{ ipv4_src }}"
+      {% endif %}
+    },
+    "instructions": {
+      "instruction": [
+        {
+          "order": 0,
+          "apply-actions": {
+            "action": [
+              {
+                "order": 0,
+                "output-action": {
+                  "output-node-connector": "{{ output_port | default('NORMAL') }}"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  }
+}

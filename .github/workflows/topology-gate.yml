@@ -1,0 +1,177 @@
+# =============================================================================
+# Topology Gate — E2E Tests on Self-Hosted Runner
+# =============================================================================
+# Runs topology-bound E2E tests on a self-hosted runner that has access
+# to the lab network (virtual or physical SDN fabric).
+#
+# Triggered manually or after merge to main. Requires:
+#   - Self-hosted runner with label "sdn-lab"
+#   - Network access to SDN controller and fabric devices
+#   - Environment variables set on the runner (see runners/setup-runner.sh)
+
+name: "Gate: Topology E2E Tests"
+
+on:
+  workflow_dispatch:
+    inputs:
+      topology:
+        description: "Topology bundle to test (e.g., spine_leaf, dc_fabric, campus)"
+        required: true
+        default: "spine_leaf"
+        type: choice
+        options:
+          - spine_leaf
+          - dc_fabric
+          - campus
+      controller_type:
+        description: "Controller type"
+        required: true
+        default: "odl"
+        type: choice
+        options:
+          - odl
+          - onos
+  push:
+    branches: [main]
+    paths:
+      - "topologies/**"
+      - "tests/e2e/**"
+      - "src/sdn_testkit/**"
+
+concurrency:
+  group: topology-gate-${{ github.event.inputs.topology || 'spine_leaf' }}
+  cancel-in-progress: false  # Don't cancel running lab tests
+
+env:
+  PYTHON_VERSION: "3.13"
+
+jobs:
+  # -------------------------------------------------------------------
+  # Pre-flight: validate topology YAML before spending lab time
+  # -------------------------------------------------------------------
+  validate-topology:
+    name: Validate Topology Definition
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Validate topology YAML
+        run: |
+          python -c "
+          from sdn_testkit.topology.loader import load_topology, discover_topologies
+          topos = discover_topologies('topologies')
+          print(f'Found {len(topos)} topology bundles: {list(topos.keys())}')
+          for name, path in topos.items():
+              topo = load_topology(path)
+              print(f'  ✓ {name}: {len(topo.nodes)} nodes, {len(topo.links)} links, {len(topo.segments)} segments')
+          "
+
+  # -------------------------------------------------------------------
+  # E2E tests on self-hosted runner with lab access
+  # -------------------------------------------------------------------
+  e2e-topology-tests:
+    name: "E2E: ${{ github.event.inputs.topology || 'spine_leaf' }}"
+    runs-on: [self-hosted, sdn-lab]
+    needs: validate-topology
+    timeout-minutes: 30
+    env:
+      SDN_TOPOLOGY: ${{ github.event.inputs.topology || 'spine_leaf' }}
+      SDN_CONTROLLER_TYPE: ${{ github.event.inputs.controller_type || 'odl' }}
+      # These should be set as runner-level env vars or GitHub secrets:
+      SDN_CONTROLLER_HOST: ${{ secrets.SDN_CONTROLLER_HOST }}
+      SDN_CONTROLLER_USER: ${{ secrets.SDN_CONTROLLER_USER }}
+      SDN_CONTROLLER_PASS: ${{ secrets.SDN_CONTROLLER_PASS }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Verify controller connectivity
+        run: |
+          python -c "
+          from sdn_testkit.controllers.base import ControllerConfig
+          from sdn_testkit.controllers.odl import OpenDaylightController
+          from sdn_testkit.controllers.onos import ONOSController
+          import os
+
+          config = ControllerConfig(
+              host=os.environ['SDN_CONTROLLER_HOST'],
+              username=os.environ.get('SDN_CONTROLLER_USER', 'admin'),
+              password=os.environ.get('SDN_CONTROLLER_PASS', 'admin'),
+          )
+
+          ctype = os.environ.get('SDN_CONTROLLER_TYPE', 'odl')
+          ctrl = ONOSController(config) if ctype == 'onos' else OpenDaylightController(config)
+
+          if ctrl.health_check():
+              print(f'✓ Controller ({ctype}) is reachable at {config.base_url}')
+          else:
+              print(f'✗ Controller ({ctype}) NOT reachable at {config.base_url}')
+              exit(1)
+          "
+
+      - name: Run E2E topology tests
+        run: |
+          pytest tests/e2e/ \
+            --topology=${{ env.SDN_TOPOLOGY }} \
+            --controller-type=${{ env.SDN_CONTROLLER_TYPE }} \
+            --controller-host=${{ env.SDN_CONTROLLER_HOST }} \
+            --controller-user=${{ env.SDN_CONTROLLER_USER }} \
+            --controller-pass=${{ env.SDN_CONTROLLER_PASS }} \
+            -m e2e \
+            --tb=long \
+            -v \
+            --junitxml=reports/e2e-${{ env.SDN_TOPOLOGY }}-results.xml \
+            --html=reports/e2e-${{ env.SDN_TOPOLOGY }}-report.html \
+            --self-contained-html \
+            --timeout=300 \
+            --reruns=1 \
+            --reruns-delay=10
+
+      - name: Upload E2E results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-results-${{ env.SDN_TOPOLOGY }}
+          path: reports/
+          retention-days: 30
+
+      - name: Post test summary
+        if: always()
+        run: |
+          echo "## E2E Test Results: ${{ env.SDN_TOPOLOGY }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f reports/e2e-${{ env.SDN_TOPOLOGY }}-results.xml ]; then
+            python -c "
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('reports/e2e-${{ env.SDN_TOPOLOGY }}-results.xml')
+          root = tree.getroot()
+          tests = root.attrib.get('tests', '0')
+          failures = root.attrib.get('failures', '0')
+          errors = root.attrib.get('errors', '0')
+          time = root.attrib.get('time', '0')
+          print(f'| Metric | Value |')
+          print(f'|--------|-------|')
+          print(f'| Total Tests | {tests} |')
+          print(f'| Failures | {failures} |')
+          print(f'| Errors | {errors} |')
+          print(f'| Duration | {float(time):.1f}s |')
+            " >> $GITHUB_STEP_SUMMARY
+          fi
