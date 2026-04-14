@@ -39,7 +39,7 @@ A pytest-based test automation framework for Software-Defined Networks. Provides
 
 ```bash
 # Clone and install
-git clone https://github.com/YOUR_ORG/sdn-test-automation.git
+git clone https://github.com/davidyoung8196504567-sudo/sdn-test-automation.git
 cd sdn-test-automation
 python3.13 -m venv .venv
 source .venv/bin/activate
