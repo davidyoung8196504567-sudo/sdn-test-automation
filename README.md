@@ -131,8 +131,7 @@ This repo is built for pytest 9.0+. Key differences from pytest 8.x:
 - **`--import-mode=importlib`** is enabled by default in `pyproject.toml` for reliable test discovery.
 - **Native TOML config** is supported (though this repo uses `pyproject.toml` INI-compat mode for broader tooling support).
 - **Subtests** are now a core feature — `pytest.raises()` with `ExceptionGroup` is natively supported.
-- **No test functions return values** — pytest 9 (via 8.4) errors on non-None returns.
-
+- **No test functions return values** — Now in pytest 9: if a test returns non‑None, pytest raises an error because return values are not test outcomes and often indicate a bug in the test logic.
 ## Test Pyramid
 
 | Layer         | Marker          | Runner           | What It Tests                                    |
@@ -196,7 +195,7 @@ The self-hosted runner connects GitHub Actions to your SDN lab network. Both the
 ```bash
 chmod +x runners/setup-runner.sh
 ./runners/setup-runner.sh \
-  --repo "https://github.com/diavidyoung8196504567-sudo/sdn-test-automation" \
+  --repo "https://github.com/davidyoung8196504567-sudo/sdn-test-automation" \
   --token "YOUR_RUNNER_TOKEN" \
   --labels "sdn-lab" \
   --controller-host "10.0.0.100" \
