@@ -196,7 +196,7 @@ The self-hosted runner connects GitHub Actions to your SDN lab network. Both the
 ```bash
 chmod +x runners/setup-runner.sh
 ./runners/setup-runner.sh \
-  --repo "https://github.com/YOUR_ORG/sdn-test-automation" \
+  --repo "https://github.com/diavidyoung8196504567-sudo/sdn-test-automation" \
   --token "YOUR_RUNNER_TOKEN" \
   --labels "sdn-lab" \
   --controller-host "10.0.0.100" \
@@ -208,7 +208,7 @@ chmod +x runners/setup-runner.sh
 ```bash
 docker build -t sdn-runner -f runners/Dockerfile.runner .
 docker run -d --name sdn-runner \
-  -e REPO_URL="https://github.com/YOUR_ORG/sdn-test-automation" \
+  -e REPO_URL="https://github.com/davidyoung8196504567-sudo/sdn-test-automation" \
   -e TOKEN="YOUR_RUNNER_TOKEN" \
   -e SDN_CONTROLLER_HOST="10.0.0.100" \
   --network=host \
