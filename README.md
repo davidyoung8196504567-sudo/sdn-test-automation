@@ -44,7 +44,6 @@ cd sdn-test-automation
 python3.13 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
-# errors encountered due to setuptools.backends._legacy ref in pyproject.toml, replaced with setuptools.build_meta, after which it built cleanly
 
 # Run unit tests (no network needed)
 pytest tests/unit/ -m unit -v
@@ -254,6 +253,13 @@ export SDN_TOPOLOGY=spine_leaf
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow, test conventions, and topology bundle authoring.
 
-## License
+## Change History
+2026-04-14 davidyoung8196504567@gmail.com - Initial upload to github account
+- updated pyproject.toml: changed setuptools.backends._legacy to setuptools.build_meta to build clean with python 3.13 and pytest 9
+- UNIT test results: 1 failed, 70 passed in 0.22s
+  FAILED tests/unit/test_config/test_validators.py::TestValidateCIDR::test_invalid_cidrs[10.0.0.0] - AssertionError: assert True is False
+  +  where True = validate_cidr('10.0.0.0')
+- INT test results: 18 passed, 2 skipped in 0.25s 
+- E2E test results: 11 passed, 4 skipped in 0.34s 
 
-MIT
+
